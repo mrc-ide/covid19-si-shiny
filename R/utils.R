@@ -2,15 +2,25 @@ pretty_mu <- function(x) {
   paste0(" Mean:\n", format(round(x, 1), nsmall = 1), " days")
 }
 
+pretty_title <- function(mixture, recall, right_bias) {
+
+  title <- "BASELINE"
+  if (mixture) title <- paste0(title, " + MIXTURE")
+  if (recall) title <- paste0(title, " + RECALL")
+  if (right_bias) title <- paste0(title, " + ISOL")
+  title
+}
 ## Obs: observed data
 ## fitted: output of processed stanfit
 ## has 2 named components:
 ## conditional and unconditional
-plot_fitted_si <- function(obs, fitted, mixture, recall, right_bias) {
+plot_fitted_si <- function(obs, fitted, mixture, recall, right_bias, title = NULL) {
 
   obs_mu <- mean(obs$si)
   cndtnl_mu <- mean(fitted[["conditional"]])
   uncndtnl_mu <- mean(fitted[["unconditional"]])
+  if (is.null(title)) title <- pretty_title(mixture, recall, right_bias)
+
   p <- ggplot() +
     geom_histogram(
       data = obs, aes(si, y = ..density.., fill = "gray77"),
@@ -66,5 +76,6 @@ plot_fitted_si <- function(obs, fitted, mixture, recall, right_bias) {
       fill = guide_legend(override.aes = list(alpha = c(0.8, 0.3, 0.3)))
     )
   }
+  p <- p + ggtitle(title)
   p
 }
