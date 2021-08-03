@@ -1,4 +1,5 @@
 library(ggplot2)
+library(purrr)
 library(shiny)
 source("R/utils.R")
 cowling <- readRDS("data/cowling_data_cleaned.rds")
@@ -29,143 +30,130 @@ ui <- fluidPage(
       6,
       selectInput(
         "tost", "Choose TOST to view",
-        choices = c("NF", "skew_normal", "gamma", "alldistrs")
+        choices = c("skew_normal")
+      )
+    ),
+    column(
+      4,
+      actionButton(
+        inputId = "submit",
+        label = "Submit",
+        style = "margin:40px;"
       )
     )
   ),
-  tabsetPanel(
-    id = "tosttab",
-    type = "hidden",
-    tabPanelBody(
-      "NF",
-      fluidRow(
-        column(6, HTML("<h2>Model fitted to full data-set</h2>")),
-        column(6, HTML("<h2>Model fitted to  transmission pairs</h2>"))
-      ),
-      models_grid(c("s3full", "s3pairs")),
-      models_grid(c("s3mixfull", "s3mixpairs")),
-      models_grid(c("s3recallfull", "s3recallpairs")),
-      models_grid(c("s3mixrecallfull", "s3mixrecallpairs")),
-      models_grid(c("s4full", "s4pairs")),
-      models_grid(c("s4mixfull", "s4mixpairs")),
-      models_grid(c("s4recallfull", "s4recallpairs")),
-      models_grid(c("s4mixrecallfull", "s4mixrecallpairs")),
-      models_grid(c("s3s4full", "s3s4pairs"))
-    ),
-    tabPanelBody(
-      "skew_normal",
-      fluidRow(
-        column(6, HTML("<h2>Model fitted to full data-set</h2>")),
-        column(6, HTML("<h2>Model fitted to  transmission pairs</h2>"))
-      ),
-      models_grid(c("sns3full", "sns3pairs")),
-      models_grid(c("sns3mixfull", "sns3mixpairs")),
-      models_grid(c("sns3recallfull", "sns3recallpairs")),
-      models_grid(c("sns3mixrecallfull", "sns3mixrecallpairs")),
-      models_grid(c("sns4full", "sns4pairs")),
-      models_grid(c("sns4mixfull", "sns4mixpairs")),
-      models_grid(c("sns4recallfull", "sns4recallpairs")),
-      models_grid(c("sns4mixrecallfull", "sns4mixrecallpairs")),
-      models_grid(c("sns3s4full", "sns3s4pairs"))
-    ),
-    tabPanelBody(
-      "gamma",
-      models_grid(c("gs3full", "gs3pairs")),
-      models_grid(c("gs3mixfull", "gs3mixpairs")),
-      models_grid(c("gs3recallfull", "gs3recallpairs")),
-      models_grid(c("gs3mixrecallfull", "gs3mixrecallpairs")),
-      models_grid(c("gs4full", "gs4pairs")),
-      models_grid(c("gs4mixfull", "gs4mixpairs")),
-      models_grid(c("gs4recallfull", "gs4recallpairs")),
-      models_grid(c("gs4mixrecallfull", "gs4mixrecallpairs")),
-      models_grid(c("gs3s4full", "gs3s4pairs"))
-    ),
-    tabPanelBody(
-      "alldistrs",
-      models_grid(c("alls3full", "alls3pairs")),
-      models_grid(c("alls3mixfull", "alls3mixpairs")),
-      models_grid(c("alls3recallfull", "alls3recallpairs")),
-      models_grid(c("alls3mixrecallfull", "alls3mixrecallpairs")),
-      models_grid(c("alls4full", "alls4pairs")),
-      models_grid(c("alls4mixfull", "alls4mixpairs")),
-      models_grid(c("alls4recallfull", "alls4recallpairs")),
-      models_grid(c("alls4mixrecallfull", "alls4mixrecallpairs")),
-      models_grid(c("alls3s4full", "alls3s4pairs"))
+  fluidRow(
+    div(
+      id = "plot-container",
+      uiOutput(outputId = "plots")
     )
   )
 )
-server <- function(input, output, session) {
-  observeEvent(input$tost, {
-    updateTabsetPanel(inputId = "tosttab", selected = input$tost)
-  })
-  ## Skew normal
-  ##output$Baseline10 <- renderText({"Baseline"})
-  output$sns3full <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[8]], FALSE, FALSE, FALSE)
-  })
-  output$sns3pairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[8]], FALSE, FALSE, FALSE)
-  })
 
+server <- shinyServer(
+  function(input, output, session){
+    session$onSessionEnded(stopApp)
 
-  output$sns3mixfull <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[7]], TRUE, FALSE, FALSE)
-  })
-  output$sns3mixpairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[7]], TRUE, FALSE, FALSE)
-  })
+    # query data from USGS API
+    wq_data <- eventReactive(input$submit, {
+      req(input$tost)
+      if (input$tost == "skew_normal") {
+        out <- list(
+          full = snfull, pairs = snpairs,
+          s3s4 = sns3s4, s3s4pairs = sns3s4pairs
+        )
+      } else if (input$tost == "NF") {
+        out <- list(
+          full = nffull, pairs = nfpairs,
+          s3s4 = nfs3s4, s3s4pairs = nfs3s4pairs
+        )
+      } else if (input$tost == "gamma") {
+        out <- list(
+          full = gfull, pairs = gpairs,
+          s3s4 = gs3s4, s3s4pairs = gs3s4pairs
+        )
+      }
+      out
+    })
 
+    # create a list of graphs - with one for each parameter selected
+    full_graphs <- eventReactive(input$submit, {
+      req(wq_data())
 
-  output$sns3recallfull <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[6]], FALSE, TRUE, FALSE)
-  })
-  output$sns3recallpairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[6]], FALSE, TRUE, FALSE)
-  })
+      pmap(
+        list(
+          fitted = wq_data()[[1]],
+          mixture = model_features$mixture,
+          recall = model_features$recall,
+          right_bias= model_features$right_bias
+        ), function(fitted, mixture, recall, right_bias) {
+          plot_fitted_si(
+            cowling, fitted, mixture, recall, right_bias
+          )
+        }
+      )
+    })
 
+    pairs_graphs <- eventReactive(input$submit, {
+      req(wq_data())
 
-  output$sns3mixrecallfull <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[5]], TRUE, TRUE, FALSE)
-  })
-  output$sns3mixrecallpairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[5]], TRUE, TRUE, FALSE)
-  })
+      pmap(
+        list(
+          fitted = wq_data()[[2]],
+          mixture = model_features$mixture,
+          recall = model_features$recall,
+          right_bias= model_features$right_bias
+        ), function(fitted, mixture, recall, right_bias) {
+          plot_fitted_si(
+            cowling, fitted, mixture, recall, right_bias
+          )
+        }
+      )
+    })
 
+    # use purrr::iwalk to create a dynamic number of outputs
+    observeEvent(input$submit, {
+      req(full_graphs())
+      req(pairs_graphs())
+      pwalk(
+        list(
+          full = full_graphs(), pairs = pairs_graphs(),
+          index = seq_len(8)
+        ), function(full, pairs, index) {
+          output_name <- paste0("plot_full_", index)
+          output[[output_name]] <- renderPlot(full)
 
-  output$sns4full <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[4]], FALSE, FALSE, TRUE)
-  })
-  output$sns4pairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[4]], FALSE, FALSE, TRUE)
-  })
+          output_name <- paste0("plot_pairs_", index)
+          output[[output_name]] <- renderPlot(pairs)
 
+      })
+    })
 
-  output$sns4mixfull <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[3]], TRUE, FALSE, TRUE)
-  })
-  output$sns4mixpairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[3]], TRUE, FALSE, TRUE)
-  })
+    # use renderUI to create a dynamic number of output ui elements
+    output$plots <- renderUI({
+      req(full_graphs())
+      req(pairs_graphs())
+      full <- full_graphs()
+      pairs <- pairs_graphs()
+      index <- seq_along(full)
+      plots_list <- pmap(
+        list(f = full, p = pairs, i = index),
+        function(f, p, i) {
+        tagList(
+          plotOutput(
+            outputId = paste0("plot_full_", i)
+          ),
+          br(),
+          plotOutput(
+            outputId = paste0("plot_pairs_", i)
+          ),
+          br()
+        )
+      })
 
+      tagList(plots_list)
+    })
 
-  output$sns4recallfull <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[2]], FALSE, TRUE, TRUE)
-  })
-  output$sns4recallpairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[2]], FALSE, TRUE, TRUE)
-  })
-
-
-  output$sns4mixrecallfull <- renderPlot({
-    plot_fitted_si(obs = cowling, fitted = snfull[[1]], TRUE, TRUE, TRUE)
-  })
-  output$sns4mixrecallpairs <- renderPlot({
-    plot_fitted_si(obs = pairs, fitted = snpairs[[1]], TRUE, TRUE, TRUE)
-  })
-
-  output$sns3s4pairs <- renderPlot({
-    plot_fitted_si(obs = s3s4pairs_obs, fitted = sns3s4pairs[[1]], FALSE, FALSE, TRUE, "S3-S4 + ")
-  })
-
-}
+  }
+)
 shinyApp(ui, server)
