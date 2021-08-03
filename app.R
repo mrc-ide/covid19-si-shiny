@@ -43,9 +43,19 @@ ui <- fluidPage(
     )
   ),
   fluidRow(
-    div(
-      id = "plot-container",
-      uiOutput(outputId = "plots")
+    column(
+      6,
+      div(
+        id = "full-container",
+        uiOutput(outputId = "plots")
+      )
+    ),
+    column(
+      6,
+      div(
+        id = "pairs-container",
+        uiOutput(outputId = "pairplots")
+      )
     )
   )
 )
@@ -132,28 +142,37 @@ server <- shinyServer(
     # use renderUI to create a dynamic number of output ui elements
     output$plots <- renderUI({
       req(full_graphs())
-      req(pairs_graphs())
       full <- full_graphs()
-      pairs <- pairs_graphs()
       index <- seq_along(full)
       plots_list <- pmap(
-        list(f = full, p = pairs, i = index),
-        function(f, p, i) {
+        list(f = full, i = index),
+        function(f, i) {
         tagList(
           plotOutput(
             outputId = paste0("plot_full_", i)
           ),
-          br(),
+          br()
+        )
+      })
+      tagList(plots_list)
+    })
+
+    output$pairplots <- renderUI({
+      req(pairs_graphs())
+      pairs <- pairs_graphs()
+      index <- seq_along(pairs)
+      plots_list <- pmap(
+        list(f = pairs, i = index),
+        function(f, i) {
+        tagList(
           plotOutput(
             outputId = paste0("plot_pairs_", i)
           ),
           br()
         )
       })
-
       tagList(plots_list)
     })
-
   }
 )
 shinyApp(ui, server)
