@@ -1,3 +1,4 @@
+## https://tbradley1013.github.io/2018/08/10/create-a-dynamic-number-of-ui-elements-in-shiny-with-purrr/
 library(ggplot2)
 library(purrr)
 library(shiny)
@@ -11,6 +12,20 @@ snfull <- readRDS("processed_stanfits/skew_normal/release/best_si_skew_normal.rd
 snpairs <- readRDS("processed_stanfits/skew_normal/discrete_pairs/best_si_skew_normal.rds")
 sns3s4 <-readRDS("processed_stanfits/skew_normal/s3s4/best_si_skew_normal.rds")
 sns3s4pairs <-readRDS("processed_stanfits/skew_normal/s3s4pairs/best_si_skew_normal.rds")
+
+
+nffull <- readRDS("processed_stanfits/nf/release/best_si_nf.rds")
+nfpairs <- readRDS("processed_stanfits/nf/discrete_pairs/best_si_nf.rds")
+nfs3s4 <-readRDS("processed_stanfits/nf/s3s4/best_si_nf.rds")
+##nfs3s4pairs <- readRDS("processed_stanfits/nf/s3s4pairs/best_si_nf.rds")
+nfs3s4pairs <- nfs3s4
+
+##gfull <- readRDS("processed_stanfits/gamma/release/best_si_gamma.rds")
+gpairs <- readRDS("processed_stanfits/gamma/discrete_pairs/best_si_gamma.rds")
+##gs3s4 <-readRDS("processed_stanfits/gamma/s3s4/best_si_gamma.rds")
+gs3s4pairs <-readRDS("processed_stanfits/gamma/s3s4pairs/best_si_gamma.rds")
+
+
 
 model_features <- list(
   "mixture" = c(TRUE, FALSE), "recall"  = c(TRUE, FALSE),
@@ -32,17 +47,18 @@ ui <- fluidPage(
       6,
       selectInput(
         "tost", "Choose TOST to view",
-        choices = c("skew_normal")
-      )
-    ),
-    column(
-      4,
-      actionButton(
-        inputId = "submit",
-        label = "Submit",
-        style = "margin:40px;"
+        choices = c(`Skew normal` = "skew_normal", gamma = "gamma", NF = "NF"),
+        selected = "NF"
       )
     )
+    ## column(
+    ##   4,
+    ##   actionButton(
+    ##     inputId = "submit",
+    ##     label = "Submit",
+    ##     style = "margin:40px;"
+    ##   )
+    ## )
   ),
   fluidRow(
     column(6, HTML("<h2>Model fitted to full data-set</h2>")),
@@ -109,7 +125,7 @@ server <- shinyServer(
     })
 
     # create a list of graphs - with one for each parameter selected
-    full_graphs <- eventReactive(input$submit, {
+    full_graphs <- eventReactive(input$tost, {
       req(wq_data())
 
       pmap(
@@ -126,7 +142,7 @@ server <- shinyServer(
       )
     })
 
-    pairs_graphs <- eventReactive(input$submit, {
+    pairs_graphs <- eventReactive(input$tost, {
       req(wq_data())
 
       pmap(
@@ -143,7 +159,7 @@ server <- shinyServer(
       )
     })
 
-    s3s4pairs_graphs <- eventReactive(input$submit, {
+    s3s4pairs_graphs <- eventReactive(input$tost, {
       req(wq_data())
 
       pmap(
@@ -162,7 +178,7 @@ server <- shinyServer(
       )
     })
 
-    s3s4_graphs <- eventReactive(input$submit, {
+    s3s4_graphs <- eventReactive(input$tost, {
       req(wq_data())
 
       pmap(
@@ -182,7 +198,7 @@ server <- shinyServer(
     })
 
     # use purrr::iwalk to create a dynamic number of outputs
-    observeEvent(input$submit, {
+    observeEvent(input$tost, {
       req(full_graphs())
       req(pairs_graphs())
       req(s3s4_graphs())
