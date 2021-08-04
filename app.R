@@ -50,14 +50,6 @@ ui <- fluidPage(
         choices = c(`Skew normal` = "skew_normal", gamma = "gamma", NF = "NF"),
         selected = "NF"
       )
-    ),
-    column(
-      4,
-      actionButton(
-        inputId = "submit",
-        label = "Submit",
-        style = "margin:40px;"
-      )
     )
   ),
   fluidRow(
@@ -103,7 +95,7 @@ server <- shinyServer(
     session$onSessionEnded(stopApp)
 
     # query data from USGS API
-    wq_data <- eventReactive(input$submit, {
+    wq_data <- reactive({
       req(input$tost)
       if (input$tost == "skew_normal") {
         out <- list(
@@ -125,9 +117,8 @@ server <- shinyServer(
     })
 
     # create a list of graphs - with one for each parameter selected
-    full_graphs <- eventReactive(input$submit, {
+    full_graphs <- reactive({
       req(wq_data())
-
       pmap(
         list(
           fitted = wq_data()[[1]],
@@ -142,7 +133,7 @@ server <- shinyServer(
       )
     })
 
-    pairs_graphs <- eventReactive(input$submit, {
+    pairs_graphs <- reactive({
       req(wq_data())
 
       pmap(
@@ -159,7 +150,7 @@ server <- shinyServer(
       )
     })
 
-    s3s4pairs_graphs <- eventReactive(input$submit, {
+    s3s4pairs_graphs <- reactive({
       req(wq_data())
 
       pmap(
@@ -178,7 +169,7 @@ server <- shinyServer(
       )
     })
 
-    s3s4_graphs <- eventReactive(input$submit, {
+    s3s4_graphs <- reactive({
       req(wq_data())
 
       pmap(
@@ -197,37 +188,14 @@ server <- shinyServer(
       )
     })
 
-    # use purrr::iwalk to create a dynamic number of outputs
-    observeEvent(input$submit, {
-      req(full_graphs())
-      req(pairs_graphs())
-      req(s3s4_graphs())
-      req(s3s4pairs_graphs())
-
-      iwalk(full_graphs(), function(f, index) {
-        output_name <- paste0("plot_full_", index)
-        output[[output_name]] <- renderPlot(f)
-      })
-      iwalk(pairs_graphs(), function(p, index) {
-        output_name <- paste0("plot_pairs_", index)
-        output[[output_name]] <- renderPlot(p)
-      })
-      iwalk(s3s4_graphs(), function(p, index) {
-        output_name <- paste0("plot_s3s4_", index)
-        output[[output_name]] <- renderPlot(p)
-      })
-      iwalk(s3s4pairs_graphs(), function(p, index) {
-        output_name <- paste0("plot_s3s4pairs_", index)
-        output[[output_name]] <- renderPlot(p)
-      })
-    })
-
     # use renderUI to create a dynamic number of output ui elements
     output$plots <- renderUI({
       req(full_graphs())
       plots_list <- imap(
         full_graphs(),
         function(f, i) {
+        output_name <- paste0("plot_full_", i)
+        output[[output_name]] <- renderPlot(f)
         tagList(
           plotOutput(
             outputId = paste0("plot_full_", i)
@@ -243,6 +211,8 @@ server <- shinyServer(
       plots_list <- imap(
         pairs_graphs(),
         function(f, i) {
+        output_name <- paste0("plot_pairs_", i)
+        output[[output_name]] <- renderPlot(f)
         tagList(
           plotOutput(
             outputId = paste0("plot_pairs_", i)
@@ -258,6 +228,8 @@ server <- shinyServer(
       plots_list <- imap(
         s3s4_graphs(),
         function(f, i) {
+        output_name <- paste0("plot_s3s4_", i)
+        output[[output_name]] <- renderPlot(f)
         tagList(
           plotOutput(
             outputId = paste0("plot_s3s4_", i)
@@ -272,6 +244,8 @@ server <- shinyServer(
       req(s3s4pairs_graphs())
       plots_list <- imap(
         s3s4pairs_graphs(), function(f, i) {
+        output_name <- paste0("plot_s3s4pairs_", i)
+        output[[output_name]] <- renderPlot(f)
         tagList(
           plotOutput(
             outputId = paste0("plot_s3s4pairs_", i)
@@ -281,8 +255,6 @@ server <- shinyServer(
       })
       tagList(plots_list)
     })
-
-
   }
 )
 shinyApp(ui, server)
