@@ -20,9 +20,9 @@ nfs3s4 <-readRDS("processed_stanfits/nf/s3s4/best_si_nf.rds")
 ##nfs3s4pairs <- readRDS("processed_stanfits/nf/s3s4pairs/best_si_nf.rds")
 nfs3s4pairs <- nfs3s4
 
-##gfull <- readRDS("processed_stanfits/gamma/release/best_si_gamma.rds")
+gfull <- readRDS("processed_stanfits/gamma/release/best_si_gamma.rds")
 gpairs <- readRDS("processed_stanfits/gamma/discrete_pairs/best_si_gamma.rds")
-##gs3s4 <-readRDS("processed_stanfits/gamma/s3s4/best_si_gamma.rds")
+gs3s4 <-readRDS("processed_stanfits/gamma/s3s4/best_si_gamma.rds")
 gs3s4pairs <-readRDS("processed_stanfits/gamma/s3s4pairs/best_si_gamma.rds")
 
 
