@@ -50,15 +50,15 @@ ui <- fluidPage(
         choices = c(`Skew normal` = "skew_normal", gamma = "gamma", NF = "NF"),
         selected = "NF"
       )
+    ),
+    column(
+      4,
+      actionButton(
+        inputId = "submit",
+        label = "Submit",
+        style = "margin:40px;"
+      )
     )
-    ## column(
-    ##   4,
-    ##   actionButton(
-    ##     inputId = "submit",
-    ##     label = "Submit",
-    ##     style = "margin:40px;"
-    ##   )
-    ## )
   ),
   fluidRow(
     column(6, HTML("<h2>Model fitted to full data-set</h2>")),
@@ -125,7 +125,7 @@ server <- shinyServer(
     })
 
     # create a list of graphs - with one for each parameter selected
-    full_graphs <- eventReactive(input$tost, {
+    full_graphs <- eventReactive(input$submit, {
       req(wq_data())
 
       pmap(
@@ -142,7 +142,7 @@ server <- shinyServer(
       )
     })
 
-    pairs_graphs <- eventReactive(input$tost, {
+    pairs_graphs <- eventReactive(input$submit, {
       req(wq_data())
 
       pmap(
@@ -159,7 +159,7 @@ server <- shinyServer(
       )
     })
 
-    s3s4pairs_graphs <- eventReactive(input$tost, {
+    s3s4pairs_graphs <- eventReactive(input$submit, {
       req(wq_data())
 
       pmap(
@@ -178,7 +178,7 @@ server <- shinyServer(
       )
     })
 
-    s3s4_graphs <- eventReactive(input$tost, {
+    s3s4_graphs <- eventReactive(input$submit, {
       req(wq_data())
 
       pmap(
@@ -198,7 +198,7 @@ server <- shinyServer(
     })
 
     # use purrr::iwalk to create a dynamic number of outputs
-    observeEvent(input$tost, {
+    observeEvent(input$submit, {
       req(full_graphs())
       req(pairs_graphs())
       req(s3s4_graphs())
