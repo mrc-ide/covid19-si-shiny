@@ -41,7 +41,10 @@ models_grid <- function(ids) {
   )
 }
 ui <- fluidPage(
-  titlePanel("Robust estimates of the infectiousness profile and serial interval distributions of SARS-CoV-2"),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+  ),
+  h2(id = "title-panel", "Robust estimates of the infectiousness profile and serial interval distributions of SARS-CoV-2"),
   fluidRow(
     column(
       6,
