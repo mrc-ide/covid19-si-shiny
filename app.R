@@ -1,6 +1,7 @@
 ## https://tbradley1013.github.io/2018/08/10/create-a-dynamic-number-of-ui-elements-in-shiny-with-purrr/
 library(ggplot2)
 library(purrr)
+library(reactable)
 library(shiny)
 source("R/utils.R")
 cowling <- readRDS("data/cowling_data_cleaned.rds")
@@ -25,7 +26,9 @@ gpairs <- readRDS("processed_stanfits/gamma/discrete_pairs/best_si_gamma.rds")
 gs3s4 <-readRDS("processed_stanfits/gamma/s3s4/best_si_gamma.rds")
 gs3s4pairs <-readRDS("processed_stanfits/gamma/s3s4pairs/best_si_gamma.rds")
 
-
+overall_t2 <- readRDS(
+  "processed_stanfits/compare_all/s3s4/table2_all_distrs.rds"
+)
 
 model_features <- list(
   "mixture" = c(TRUE, FALSE), "recall"  = c(TRUE, FALSE),
@@ -45,52 +48,37 @@ ui <- fluidPage(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
   ),
   h2(id = "title-panel", "Robust estimates of the infectiousness profile and serial interval distributions of SARS-CoV-2"),
-  fluidRow(
-    column(
-      6,
-      selectInput(
-        "tost", "Choose TOST to view",
-        choices = c(`Skew normal` = "skew_normal", gamma = "gamma", NF = "NF"),
-        selected = "NF"
-      )
-    )
-  ),
-  fluidRow(
-    column(6, HTML("<h2>Model fitted to full data-set</h2>")),
-    column(6, HTML("<h2>Model fitted to  transmission pairs</h2>"))
-  ),
-  fluidRow(
-    column(
-      6,
-      div(
-        id = "full-container",
-        uiOutput(outputId = "plots")
+  tabsetPanel(
+    tabPanel(
+      title = "Model fits to observed data",
+      fluidRow(
+        column(
+          6,
+        selectInput(
+          "tost", "Choose TOST to view",
+          choices = c(`Skew normal` = "skew_normal", gamma = "gamma", NF = "NF"),
+          selected = "NF"
+        )
       )
     ),
-    column(
-      6,
-      div(
-        id = "pairs-container",
-        uiOutput(outputId = "pairplots")
-      )
-    )
+    fluidRow(
+      column(6, HTML("<h2>Model fitted to full data-set</h2>")),
+      column(6, HTML("<h2>Model fitted to  transmission pairs</h2>"))
+    ),
+    fluidRow(
+      column(6, div(id = "full-container", uiOutput(outputId = "plots"))
+    ),
+    column(6, div(id = "pairs-container", uiOutput(outputId = "pairplots")))
   ),
   fluidRow(
-    column(
-      6,
-      div(
-        id = "full-s3s4",
-        uiOutput(outputId = "s3s4")
-      )
-    ),
-    column(
-      6,
-      div(
-        id = "pairs-s3s4",
-        uiOutput(outputId = "s3s4pairs")
-      )
-    )
+    column(6, div(id = "full-s3s4", uiOutput(outputId = "s3s4"))),
+    column(6, div(id = "pairs-s3s4", uiOutput(outputId = "s3s4pairs")))
   )
+  ),
+  tabPanel(title = "Summary Tables", reactableOutput("summary")),
+  type = "pills"
+  )
+
 )
 
 server <- shinyServer(
@@ -257,6 +245,10 @@ server <- shinyServer(
         )
       })
       tagList(plots_list)
+    })
+
+    output$summary <- renderReactable({
+      reactable(overall_t2)
     })
   }
 )
